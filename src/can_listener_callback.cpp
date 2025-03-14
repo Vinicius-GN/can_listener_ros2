@@ -58,10 +58,12 @@ private:
     if (msg->type == icsneo::Message::Type::Frame) {
 
         auto frame = std::static_pointer_cast<icsneo::Frame>(msg);
-      // Agora verifica o tipo de rede usando frame->network.getType()
+      //Verifica o tipo de rede usando frame->network.getType()
+      
       if (frame->network.getType() == icsneo::Network::Type::CAN ||
           frame->network.getType() == icsneo::Network::Type::SWCAN ||
           frame->network.getType() == icsneo::Network::Type::LSFTCAN) {
+        
         // Como é uma mensagem CAN, faz o cast para CANMessage
         auto canmsg = std::static_pointer_cast<icsneo::CANMessage>(msg);
         // canmsg->arbid is valid here
