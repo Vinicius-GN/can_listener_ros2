@@ -34,19 +34,28 @@ public:
     // device->settings->refresh();
     // device->settings->apply();
 
+  //Definindo o modo de operação do dispositivo (Configurações gerais)
+
     // Imprime informações do dispositivo
     RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Dispositivo conectado: %s", device->describe().c_str());
     RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Getting HSCAN e HSCAN2 Baudrate...");
 
     // auto* settings = device->settings.get();
     // RCLCPP_INFO(rclcpp::get_logger("CANReader"), settings);
-    device->settings->setLINModeFor(icsneo::Network::NetID::LIN, SLEEP_MODE);
+    device->settings->setLINModeFor(icsneo::Network::NetID::LIN, SLEEP_MODE); //NORMAL_MODE 
     device->settings->setCommanderResistorFor(icsneo::Network::NetID::LIN, false);
+
+    device->settingsgetMutableCANSettingsFor(icsneo::Network::NetID::HSCAN)->Mode = 3; // 0 = NORMAL_MODE, 1 = DISABLE_MODE, 2 = LOOPBACK_MODE, 3 = LISTEN_ONLY_MODE
+    device->settings->getMutableCANSettingsFor(icsneo::Network::NetID::HSCAN2)->Mode = 3; // 0 = NORMAL_MODE, 1 = DISABLE_MODE, 2 = LOOPBACK_MODE, 3 = LISTEN_ONLY_MODE
+    device->settings->setTerminationFor(icsneo::Network::NetID::HSCAN, false);
+    device->settings->setTerminationFor(icsneo::Network::NetID::HSCAN2, false);
+
+    //Immprimir as configurações atuais do dispositivo
+    // RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Configuracoes atuais do dispositivo: %s", device->settings-1>describe().c_str());
 
     int64_t baud = device->settings->getBaudrateFor(icsneo::Network::NetID::HSCAN);
     int64_t baud2 = device->settings->getBaudrateFor(icsneo::Network::NetID::HSCAN2);
-    // int64_t baud3 = device->settings->getBaudrateFor(icsneo::Network::NetID::HSCAN3);
-    // int64_t baud4 = device->settings->getBaudrateFor(icsneo::Network::NetID::HSCAN4);
+ 
 		if(baud < 0)
       RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Falha ao pegar a baudRate");
 		else
@@ -55,12 +64,13 @@ public:
     // Definindo nova velocidade de leitura para ambos os canais
     baud = device->settings->setBaudrateFor(icsneo::Network::NetID::HSCAN, 500000);
     baud2 = device->settings->setBaudrateFor(icsneo::Network::NetID::HSCAN2, 250000);
-    device->settings->apply();
+   
 		if(baud < 0)
       RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Falha ao setar a baudRate");
 		else
       RCLCPP_INFO(rclcpp::get_logger("CANReader"), "Baud Rate alterada com sucesso!");
 
+    device->settings->apply();
 
     // Coloca o dispositivo online para começar a receber mensagens
     if (!device->goOnline()) {

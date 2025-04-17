@@ -64,6 +64,13 @@ install(TARGETS can_listener_callback_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# Declarar o executável para o nó can_listener_node
+add_executable(data_reader src/bag_to_file.cpp)
+ament_target_dependencies(data_reader rclcpp std_msgs)
+install(TARGETS data_reader
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
