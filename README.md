@@ -70,45 +70,106 @@ O projeto oferece **duas formas de leitura**:
 Ambos publicam dados brutos no tópico **`/can_data`** como `std_msgs/msg/UInt8MultiArray`.
 
 ---
-
-## O que os códigos fazem 📝
+## O que os códigos fazem:
 
 ### 🟢 1. `can_listener.cpp` (Leitura por Polling)
 
-**Fluxo resumido:**
+Este script implementa o fluxo de **leitura por polling**, de forma periódica.
 
-* Inicializa o ValueCAN4-2.
-* Configura o canal HSCAN em baudrate 500 kbit/s e modo **listen-only**.
-* Habilita coleta de mensagens.
-* Entra em um loop de 10 Hz:
+### Resumo do funcionamento:
 
-  * Verifica mensagens novas (`getMessages()`).
-  * Publica o payload bruto da última mensagem lida no tópico `/can_data`.
+1. **Inicialização do ROS 2 e criação do nó**
 
-**Características:**
+   * Nó chamado `can_listener_node`.
+   * Cria um publisher no tópico `/can_data` para enviar mensagens.
 
-* Latência baixa-média (depende da taxa de loop).
-* Mais simples de entender.
-* Útil para cenários onde se prefere processar lotes periodicamente.
+2. **Inicialização do dispositivo CAN**
+
+   * Detecta se o ValueCAN4-2 está conectado.
+   * Abre o dispositivo.
+   * Configura:
+
+     * Baudrate HSCAN: **500 kbit/s**.
+     * Baudrate HSCAN2: **250 kbit/s**.
+     * Modo listen-only: só escuta, não transmite.
+     * Terminação: desativada.
+   * Entra no modo online.
+   * Habilita coleta de mensagens.
+
+3. **Loop de aquisição**
+
+   * Roda em frequência fixa de **10 Hz**.
+   * Em cada iteração:
+
+     * Chama `getMessages()` para ler todas as novas mensagens recebidas desde o último ciclo.
+     * Verifica se são frames CAN.
+     * Extrai o vetor de bytes da mensagem.
+     * Publica no `/can_data`.
+
+4. **Encerramento**
+
+   * Ao finalizar (Ctrl+C), fecha o dispositivo e faz shutdown do ROS 2.
+
+### 🧭 Quando usar:
+
+Ideal para casos em que:
+
+* Quer periodicidade fixa de leitura.
+* Volume de mensagens é baixo a moderado.
+* Precisa processar lotes de mensagens por ciclo.
 
 ---
 
 ### 🟢 2. `can_listener_callback.cpp` (Leitura via Callback)
 
-**Fluxo resumido:**
+Este script implementa o fluxo de **leitura assíncrona por callback**, reagindo imediatamente à chegada de mensagens.
 
-* Inicializa o ValueCAN4-2.
-* Configura baudrate e modo listen-only.
-* Registra um **callback** com `addMessageCallback()`:
+### Resumo do funcionamento:
 
-  * Sempre que chega uma nova mensagem, a função `processMessage()` é chamada.
-  * Publica o payload imediatamente no tópico `/can_data`.
+1. **Inicialização do ROS 2 e criação do nó**
 
-**Características:**
+   * A classe `CANReader` herda de `rclcpp::Node`.
+   * Nó chamado `can_listener_callback_node`.
+   * Cria publisher no tópico `/can_data`.
 
-* Latência mínima (evento dispara instantaneamente).
-* Mais eficiente em CPU.
-* Ideal para sistemas reativos ou com grande volume de dados.
+2. **Inicialização do dispositivo CAN**
+
+   * Detecta e abre o ValueCAN4-2.
+   * Configura:
+
+     * Baudrate HSCAN: **500 kbit/s**.
+     * Modo listen-only.
+     * Terminação desativada.
+   * Entra no modo online.
+   * Habilita polling interno (buffer).
+   * Registra um **callback**:
+
+     * Toda vez que chega uma mensagem nova, o SDK chama automaticamente a função `processMessage()`.
+
+3. **Callback `processMessage()`**
+
+   * Verifica se a mensagem é frame CAN/SWCAN/LSFTCAN.
+   * Converte o payload em vetor de bytes.
+   * Publica no `/can_data` **imediatamente**.
+
+4. **Loop de espera**
+
+   * Ao invés de um loop manual, chama `rclcpp::spin()`:
+
+     * Fica escutando eventos ROS 2 e callbacks do SDK.
+     * Não há polling explícito.
+
+5. **Encerramento**
+
+   * Fecha o dispositivo ao sair.
+
+### 🧭 Quando usar:
+
+Ideal para casos em que:
+
+* Precisa da menor latência possível.
+* O volume de mensagens é alto.
+* Quer reagir imediatamente ao tráfego CAN.
 
 ---
 
